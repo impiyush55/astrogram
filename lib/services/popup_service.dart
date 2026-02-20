@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import '../models/popup_model.dart';
 
 class PopupService {
@@ -23,7 +24,7 @@ class PopupService {
       final Map<String, dynamic> data = json.decode(mockApiResponse);
       return PopupModel.fromJson(data);
     } catch (e) {
-      print("Error fetching popup data: $e");
+      debugPrint("Error fetching popup data: $e");
       return null;
     }
   }

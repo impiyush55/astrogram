@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import '../../helper/color.dart';
 import '../../services/horoscope_service.dart';
 
 class HoroscopeScreen extends StatefulWidget {
-  const HoroscopeScreen({super.key});
+  final int initialZodiacIndex;
+  const HoroscopeScreen({super.key, this.initialZodiacIndex = 0});
 
   @override
   State<HoroscopeScreen> createState() => _HoroscopeScreenState();
@@ -13,7 +15,7 @@ class _HoroscopeScreenState extends State<HoroscopeScreen>
   late TabController _dateTabController;
   late TabController _typeTabController;
 
-  final List<String> _zodiacs = [
+  List<String> _zodiacs = [
     'Aries',
     'Taurus',
     'Gemini',
@@ -38,23 +40,19 @@ class _HoroscopeScreenState extends State<HoroscopeScreen>
   @override
   void initState() {
     super.initState();
+    _selectedZodiacIndex = widget.initialZodiacIndex;
     _dateTabController = TabController(
       length: 3,
       vsync: this,
-      initialIndex: 1,
-    ); // Yesterday, Today, Tomorrow
+      initialIndex: 0,
+    ); // Daily, Weekly, Monthly
     _typeTabController = TabController(length: 3, vsync: this);
 
-    // Fetch initial data for "Today" (index 1)
-    _fetchHoroscope();
+    _initializeData();
 
     // Listen to tab changes to fetch data
     _dateTabController.addListener(() {
       if (!_dateTabController.indexIsChanging) {
-        // This handles end of swipe OR end of tap animation
-        // For tap, index updates immediately but indexIsChanging is true.
-        // Wait, for standard TabBar, tap sets index immediately.
-        // Let's just check if index changed from what we last fetched.
         if (_dateTabController.index != _lastFetchedIndex) {
           _fetchHoroscope();
         }
@@ -62,28 +60,71 @@ class _HoroscopeScreenState extends State<HoroscopeScreen>
     });
   }
 
+  Future<void> _initializeData() async {
+    // 1. Fetch real zodiac signs from backend
+    final liveSigns = await _horoscopeService.fetchZodiacSigns();
+    if (liveSigns.isNotEmpty && mounted) {
+      setState(() {
+        // Convert to Title Case for UI display if needed, but backend returns UPPPERCASE
+        _zodiacs = liveSigns.map((s) {
+          if (s.isEmpty) return s;
+          return s[0] + s.substring(1).toLowerCase();
+        }).toList();
+      });
+    }
+
+    // 2. Fetch initial horoscope
+    _fetchHoroscope();
+  }
+
   void _fetchHoroscope() async {
-    final currentIndex = _dateTabController.index;
+    final int currentIndex = _dateTabController.index;
     _lastFetchedIndex = currentIndex;
 
     setState(() {
       _isLoading = true;
     });
 
-    String day = "Today";
-    if (_dateTabController.index == 0) day = "Yesterday";
-    if (_dateTabController.index == 2) day = "Tomorrow";
+    String type = "DAILY";
+    if (currentIndex == 1) type = "WEEKLY";
+    if (currentIndex == 2) type = "MONTHLY";
 
-    final data = await _horoscopeService.fetchHoroscope(
-      _zodiacs[_selectedZodiacIndex],
-      day,
-    );
+    try {
+      final liveResponse = await _horoscopeService.fetchHoroscopeBySign(
+        type,
+        _zodiacs[_selectedZodiacIndex],
+      );
 
-    if (mounted) {
-      setState(() {
-        _dailyData = data;
-        _isLoading = false;
-      });
+      if (mounted) {
+        final String label = (currentIndex == 0)
+            ? "Today"
+            : (currentIndex == 1)
+            ? "This Week"
+            : "This Month";
+
+        if (liveResponse != null) {
+          setState(() {
+            _dailyData = _horoscopeService.injectMetadata(liveResponse, label);
+            _isLoading = false;
+          });
+        } else {
+          // Fallback to dummy data if API fails
+          setState(() {
+            _dailyData = _horoscopeService.generateDummyData(
+              _zodiacs[_selectedZodiacIndex],
+              label,
+            );
+            _isLoading = false;
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint("Error in _fetchHoroscope: $e");
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -96,18 +137,27 @@ class _HoroscopeScreenState extends State<HoroscopeScreen>
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: theme.appBarTheme.backgroundColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          icon: Icon(
+            Icons.arrow_back,
+            color: theme.appBarTheme.foregroundColor,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
+        title: Text(
           'Daily Horoscope',
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            color: theme.appBarTheme.foregroundColor,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         actions: [
           TextButton.icon(
@@ -133,7 +183,8 @@ class _HoroscopeScreenState extends State<HoroscopeScreen>
               padding: const EdgeInsets.symmetric(horizontal: 16),
               scrollDirection: Axis.horizontal,
               itemCount: _zodiacs.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 16),
+              separatorBuilder: (context, index) => const SizedBox(width: 16),
+
               itemBuilder: (context, index) {
                 final isSelected = _selectedZodiacIndex == index;
                 return GestureDetector(
@@ -152,7 +203,7 @@ class _HoroscopeScreenState extends State<HoroscopeScreen>
                           shape: BoxShape.circle,
                           border: isSelected
                               ? Border.all(
-                                  color: const Color(0xFFFFD700),
+                                  color: AppColors.goldAccent,
                                   width: 2,
                                 )
                               : null,
@@ -162,9 +213,11 @@ class _HoroscopeScreenState extends State<HoroscopeScreen>
                           backgroundColor: Colors.yellow.shade100,
                           child: Text(
                             _zodiacs[index][0],
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontWeight: FontWeight.bold,
-                              color: Colors.brown,
+                              color: isDark
+                                  ? AppColors.goldAccent
+                                  : Colors.brown,
                             ),
                           ), // Placeholder for image
                           // backgroundImage: AssetImage('assets/zodiac/${_zodiacs[index].toLowerCase()}.png'),
@@ -178,7 +231,7 @@ class _HoroscopeScreenState extends State<HoroscopeScreen>
                           fontWeight: isSelected
                               ? FontWeight.bold
                               : FontWeight.normal,
-                          color: Colors.black,
+                          color: theme.colorScheme.onSurface,
                         ),
                       ),
                     ],
@@ -198,18 +251,20 @@ class _HoroscopeScreenState extends State<HoroscopeScreen>
             child: TabBar(
               controller: _dateTabController,
               indicator: BoxDecoration(
-                color: Colors.yellow.shade100,
+                color: isDark ? AppColors.darkSection : Colors.yellow.shade100,
                 borderRadius: BorderRadius.circular(25),
-                border: Border.all(color: const Color(0xFFFFD700)),
+                border: Border.all(color: AppColors.goldAccent),
               ),
-              labelColor: Colors.black,
-              unselectedLabelColor: Colors.grey,
+              labelColor: theme.colorScheme.onSurface,
+              unselectedLabelColor: theme.colorScheme.onSurface.withOpacity(
+                0.5,
+              ),
               indicatorSize: TabBarIndicatorSize.tab,
               dividerColor: Colors.transparent,
               tabs: const [
-                Tab(text: 'Yesterday'),
-                Tab(text: 'Today'),
-                Tab(text: 'Tomorrow'),
+                Tab(text: 'Daily'),
+                Tab(text: 'Weekly'),
+                Tab(text: 'Monthly'),
               ],
             ),
           ),
@@ -224,9 +279,9 @@ class _HoroscopeScreenState extends State<HoroscopeScreen>
                 : TabBarView(
                     controller: _dateTabController,
                     children: [
-                      _buildHoroscopeContent("Yesterday"),
-                      _buildHoroscopeContent("Today"),
-                      _buildHoroscopeContent("Tomorrow"),
+                      _buildHoroscopeContent("Daily", theme, isDark),
+                      _buildHoroscopeContent("Weekly", theme, isDark),
+                      _buildHoroscopeContent("Monthly", theme, isDark),
                     ],
                   ),
           ),
@@ -235,7 +290,7 @@ class _HoroscopeScreenState extends State<HoroscopeScreen>
     );
   }
 
-  Widget _buildHoroscopeContent(String day) {
+  Widget _buildHoroscopeContent(String day, ThemeData theme, bool isDark) {
     if (_dailyData == null) return const SizedBox();
 
     return SingleChildScrollView(
@@ -248,14 +303,16 @@ class _HoroscopeScreenState extends State<HoroscopeScreen>
             width: double.infinity,
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: const Color(0xFF0F172A), // Dark blue
+              color: isDark
+                  ? AppColors.darkCard
+                  : const Color(0xFF0F172A), // Dark blue
               borderRadius: BorderRadius.circular(20),
-              image: const DecorationImage(
-                image: AssetImage(
-                  'assets/images/stars_bg_placeholder.png',
-                ), // Need a background or gradient
-                fit: BoxFit.cover,
-                opacity: 0.2,
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: isDark
+                    ? [AppColors.darkCard, Colors.black87]
+                    : [const Color(0xFF0F172A), Colors.black],
               ),
             ),
             child: Column(
@@ -266,7 +323,11 @@ class _HoroscopeScreenState extends State<HoroscopeScreen>
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Your Daily horoscope is ready!',
+                  'Your ${_dateTabController.index == 0
+                      ? "Daily"
+                      : _dateTabController.index == 1
+                      ? "Weekly"
+                      : "Monthly"} horoscope is ready!',
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 18,
@@ -377,30 +438,68 @@ class _HoroscopeScreenState extends State<HoroscopeScreen>
           ),
 
           const SizedBox(height: 24),
+          // General Reading Section (Primary Live Data)
+          if (_dailyData!['description'] != null) ...[
+            Text(
+              'General Reading',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: theme.colorScheme.onSurface,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: isDark ? AppColors.darkCard : Colors.yellow.shade50,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: isDark ? AppColors.darkBorder : AppColors.goldAccent,
+                ),
+              ),
+              child: Text(
+                _dailyData!['description'],
+                style: TextStyle(
+                  fontSize: 16,
+                  height: 1.5,
+                  color: theme.colorScheme.onSurface,
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+          ],
+
           Text(
-            '$day Horoscope',
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            '$day Details',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: theme.colorScheme.onSurface,
+            ),
           ),
           const SizedBox(height: 16),
 
           // Love
           _buildInfoCard(
-            title: 'Love',
+            title: 'Love & Relation',
             icon: Icons.favorite,
             color: Colors.red.shade100,
             iconColor: Colors.red,
-            percentage: _dailyData!['love']['pencentage'] ?? 50,
+            percentage: _dailyData!['love']['percentage'] ?? 50,
             content: _dailyData!['love']['content'] ?? "No data",
+            isDark: isDark,
           ),
           const SizedBox(height: 16),
           // Career
           _buildInfoCard(
-            title: 'Career',
+            title: 'Career & Work',
             icon: Icons.work,
             color: Colors.orange.shade100,
             iconColor: Colors.deepOrange,
-            percentage: _dailyData!['career']['pencentage'] ?? 50,
+            percentage: _dailyData!['career']['percentage'] ?? 50,
             content: _dailyData!['career']['content'] ?? "No data",
+            isDark: isDark,
           ),
 
           const SizedBox(height: 16),
@@ -410,9 +509,10 @@ class _HoroscopeScreenState extends State<HoroscopeScreen>
             icon: Icons.attach_money,
             color: Colors.green.shade100,
             iconColor: Colors.green,
-            percentage: _dailyData!['money']['pencentage'] ?? 50,
+            percentage: _dailyData!['money']['percentage'] ?? 50,
             content: _dailyData!['money']['content'] ?? "No data",
             isCompact: true,
+            isDark: isDark,
           ),
 
           const SizedBox(height: 16),
@@ -422,9 +522,10 @@ class _HoroscopeScreenState extends State<HoroscopeScreen>
             icon: Icons.health_and_safety,
             color: Colors.blue.shade100,
             iconColor: Colors.blue,
-            percentage: _dailyData!['health']['pencentage'] ?? 50,
+            percentage: _dailyData!['health']['percentage'] ?? 50,
             content: _dailyData!['health']['content'] ?? "No data",
             isCompact: true,
+            isDark: isDark,
           ),
 
           const SizedBox(height: 16),
@@ -434,15 +535,20 @@ class _HoroscopeScreenState extends State<HoroscopeScreen>
             icon: Icons.flight,
             color: Colors.purple.shade100,
             iconColor: Colors.purple,
-            percentage: _dailyData!['travel']['pencentage'] ?? 50,
+            percentage: _dailyData!['travel']['percentage'] ?? 50,
             content: _dailyData!['travel']['content'] ?? "No data",
             isCompact: true,
+            isDark: isDark,
           ),
 
           const SizedBox(height: 24),
-          const Text(
+          Text(
             'Daily Horoscope Insights',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: theme.colorScheme.onSurface,
+            ),
           ),
           const SizedBox(height: 16),
 
@@ -451,6 +557,8 @@ class _HoroscopeScreenState extends State<HoroscopeScreen>
             _dailyData!['insights']['food']['name'],
             _dailyData!['insights']['food']['desc'],
             _dailyData!['insights']['food']['image'] ?? '',
+            theme,
+            isDark,
           ),
           const SizedBox(height: 16),
           _buildInsightCard(
@@ -458,6 +566,8 @@ class _HoroscopeScreenState extends State<HoroscopeScreen>
             _dailyData!['insights']['product']['name'],
             _dailyData!['insights']['product']['desc'],
             _dailyData!['insights']['product']['image'] ?? '',
+            theme,
+            isDark,
           ),
           const SizedBox(height: 16),
           _buildInsightCard(
@@ -465,6 +575,8 @@ class _HoroscopeScreenState extends State<HoroscopeScreen>
             _dailyData!['insights']['activity']['name'],
             _dailyData!['insights']['activity']['desc'],
             _dailyData!['insights']['activity']['image'] ?? '',
+            theme,
+            isDark,
           ),
 
           const SizedBox(height: 20),
@@ -481,13 +593,15 @@ class _HoroscopeScreenState extends State<HoroscopeScreen>
     required int percentage,
     required String content,
     bool isCompact = false,
+    required bool isDark,
   }) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.3),
+        color: isDark ? AppColors.darkCard : color.withOpacity(0.3),
+
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color),
+        border: Border.all(color: isDark ? AppColors.darkBorder : color),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -517,7 +631,10 @@ class _HoroscopeScreenState extends State<HoroscopeScreen>
           const SizedBox(height: 8),
           Text(
             content,
-            style: const TextStyle(color: Colors.black87, height: 1.4),
+            style: TextStyle(
+              color: isDark ? Colors.white70 : Colors.black87,
+              height: 1.4,
+            ),
           ),
         ],
       ),
@@ -529,19 +646,24 @@ class _HoroscopeScreenState extends State<HoroscopeScreen>
     String title,
     String desc,
     String imagePath,
+    ThemeData theme,
+    bool isDark,
   ) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? AppColors.darkCard : Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
             color: Colors.grey.withOpacity(0.1),
+
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
         ],
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -573,12 +695,13 @@ class _HoroscopeScreenState extends State<HoroscopeScreen>
                     horizontal: 12,
                     vertical: 6,
                   ),
-                  color: const Color(0xFFFFD700),
+                  color: AppColors.goldAccent,
                   child: Text(
                     badge,
                     style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
+                      color: Colors.black,
                     ),
                   ),
                 ),
@@ -592,13 +715,19 @@ class _HoroscopeScreenState extends State<HoroscopeScreen>
               children: [
                 Text(
                   '"$title"',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.onSurface,
                   ),
                 ),
                 const SizedBox(height: 8),
-                Text(desc, style: const TextStyle(color: Colors.grey)),
+                Text(
+                  desc,
+                  style: TextStyle(
+                    color: theme.colorScheme.onSurface.withOpacity(0.5),
+                  ),
+                ),
               ],
             ),
           ),

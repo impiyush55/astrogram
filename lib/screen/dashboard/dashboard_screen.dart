@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:astrogram/screen/dashboard/home_screen.dart';
-import 'package:astrogram/screen/dashboard/live_screen.dart'; // Ensure this file exists
-
 import 'package:astrogram/screen/dashboard/ask_screen.dart';
+import 'package:astrogram/screen/dashboard/remedies_screen.dart';
+import 'package:astrogram/screen/dashboard/profile_screen.dart';
+import 'package:astrogram/widgets/main_drawer.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -14,13 +15,12 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   int _selectedIndex = 0;
 
-  // Placeholder for screens that are not implemented yet or imported
   List<Widget> get _pages => [
     const HomeScreen(),
-    const Center(child: Text('AI Astro')),
-    const LiveScreen(), // Use actual widget if available
-    const AskScreen(), // Using AskScreen for the 'Ask' tab
-    const Center(child: Text('Sign Up')),
+    const AskScreen(), // Guidance Screen
+    const Center(child: Text('AI Astro')), // Astro AI Placeholder
+    const RemediesScreen(),
+    const ProfileScreen(), // You Screen
   ];
 
   void _onItemTapped(int index) {
@@ -32,24 +32,36 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      drawer: const MainDrawer(),
       body: _pages[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
         type: BottomNavigationBarType.fixed,
-        backgroundColor: Colors.black,
-        selectedItemColor: const Color(0xFFFFD700), // Match the gold theme
-        unselectedItemColor: Colors.white54,
+        backgroundColor: Theme.of(
+          context,
+        ).bottomNavigationBarTheme.backgroundColor,
+        selectedItemColor: Theme.of(
+          context,
+        ).bottomNavigationBarTheme.selectedItemColor,
+        unselectedItemColor: Theme.of(
+          context,
+        ).bottomNavigationBarTheme.unselectedItemColor,
         showUnselectedLabels: true,
+        selectedLabelStyle: const TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+        ),
+        unselectedLabelStyle: const TextStyle(fontSize: 10),
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+          BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: 'Home'),
+          BottomNavigationBarItem(icon: Icon(Icons.explore), label: 'Guidance'),
           BottomNavigationBarItem(
-            icon: Icon(Icons.auto_awesome),
-            label: 'AI Astro',
+            icon: Icon(Icons.psychology),
+            label: 'Astro AI',
           ),
-          BottomNavigationBarItem(icon: Icon(Icons.live_tv), label: 'Live'),
-          BottomNavigationBarItem(icon: Icon(Icons.chat), label: 'Ask'),
-          BottomNavigationBarItem(icon: Icon(Icons.healing), label: 'Remedies'),
+          BottomNavigationBarItem(icon: Icon(Icons.spa), label: 'Remedies'),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'You'),
         ],
       ),
     );

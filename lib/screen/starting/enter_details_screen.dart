@@ -2,6 +2,7 @@ import 'package:astrogram/helper/color.dart';
 import 'package:astrogram/helper/custom_text.style.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import '../../services/auth_service.dart';
 //import 'package:flutter/cupertino.dart';
 
 import '../../widgets/my_text_button.dart';
@@ -129,11 +130,47 @@ class _EnterDetailsScreenState extends State<EnterDetailsScreen> {
     return _nameController.text.trim().isNotEmpty;
   }
 
+  final bool _isLoading = false;
+
   @override
   void initState() {
     super.initState();
     _nameController.addListener(() {
       setState(() {});
+    });
+
+    // Check if profile already exists in global session to pre-fill
+    if (AuthService.currentUserProfile != null &&
+        AuthService.currentUserProfile!['notFound'] != true) {
+      _applyProfileData(AuthService.currentUserProfile!);
+    }
+  }
+
+  void _applyProfileData(Map<String, dynamic> profile) {
+    setState(() {
+      _nameController.text = profile['fullName']?.toString() ?? "";
+      _locationController.text = profile['placeOfBirth']?.toString() ?? "";
+
+      final genderStr = profile['gender']?.toString().toUpperCase();
+      if (genderStr == "MALE") _selectGender = "Male";
+      if (genderStr == "FEMALE") _selectGender = "Female";
+
+      // Parse Date (Expects YYYY-MM-DD)
+      if (profile['dateOfBirth'] != null) {
+        try {
+          final dob = DateTime.parse(profile['dateOfBirth'].toString());
+          int yearIdx = years.indexOf(dob.year);
+          if (yearIdx != -1) selectedYearIndex = yearIdx;
+          selectedMonthIndex = dob.month - 1;
+          selectedDayIndex = dob.day - 1;
+        } catch (e) {
+          debugPrint("Error parsing DOB in EnterDetails: $e");
+        }
+      }
+
+      if (profile['timeOfBirth'] != null) {
+        _bornTime = "Yes";
+      }
     });
   }
 
@@ -149,7 +186,7 @@ class _EnterDetailsScreenState extends State<EnterDetailsScreen> {
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
-        // app bar
+        backgroundColor: AppColors.darkBackground,
         appBar: AppBar(
           title: Text(
             "Enter Your Details",
@@ -157,52 +194,47 @@ class _EnterDetailsScreenState extends State<EnterDetailsScreen> {
           ),
           leading: IconButton(
             onPressed: () => _backPage(),
-            icon: Icon(Icons.arrow_back_ios_rounded, color: Colors.white),
+            icon: const Icon(Icons.arrow_back_ios_rounded, color: Colors.white),
           ),
-          backgroundColor: AppColors.lightBackground,
+          backgroundColor: Colors.transparent,
           elevation: 0,
         ),
-        backgroundColor: AppColors.lightBackground,
-
-        ///body
         body: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: Column(
-              children: [
-                /// page Indicator call here
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: [_buildPageIndicator()],
+          child: Stack(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [_buildPageIndicator()],
+                    ),
+                    Expanded(
+                      child: PageView(
+                        controller: _pageController,
+                        physics: const NeverScrollableScrollPhysics(),
+                        children: [
+                          _buildNamePage(),
+                          _buildGenderPage(),
+                          _buildDateOfBirth(),
+                          _buildBirthTime(),
+                          _buildLocationPage(),
+                          _buildLanguagePage(),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-
-                Expanded(
-                  child: PageView(
-                    controller: _pageController,
-                    physics: NeverScrollableScrollPhysics(),
-                    children: [
-                      /// name page
-                      _buildNamePage(),
-
-                      /// gender
-                      _buildGenderPage(),
-
-                      /// date of birth
-                      _buildDateOfBirth(),
-
-                      /// birth time
-                      _buildBirthTime(),
-
-                      /// location
-                      _buildLocationPage(),
-
-                      /// language
-                      _buildLanguagePage(),
-                    ],
+              ),
+              if (_isLoading)
+                Container(
+                  color: Colors.black.withOpacity(0.5),
+                  child: const Center(
+                    child: CircularProgressIndicator(color: AppColors.primary),
                   ),
                 ),
-              ],
-            ),
+            ],
           ),
         ),
       ),
@@ -760,6 +792,18 @@ class _EnterDetailsScreenState extends State<EnterDetailsScreen> {
                 btnText: 'Start chat with Astrologer',
                 borderRadius: 16,
                 onPress: () {
+                  // Save name to profile session
+                  if (_nameController.text.isNotEmpty) {
+                    if (AuthService.currentUserProfile != null) {
+                      AuthService.currentUserProfile!['fullName'] =
+                          _nameController.text;
+                    } else {
+                      AuthService.currentUserProfile = {
+                        'fullName': _nameController.text,
+                      };
+                    }
+                  }
+
                   Navigator.pushReplacement(
                     context,
                     MaterialPageRoute(builder: (_) => DashboardScreen()),

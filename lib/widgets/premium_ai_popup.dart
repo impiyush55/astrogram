@@ -23,7 +23,8 @@ class PremiumAIPopup extends StatelessWidget {
               color: const Color(0xFF1E1E1E), // Dark background
               borderRadius: BorderRadius.circular(24),
               border: Border.all(
-                color: const Color(0xFFFFD700).withOpacity(0.5),
+                color: const Color(0xFFFFD700).withValues(alpha: 0.5),
+
                 width: 1,
               ),
             ),
@@ -46,7 +47,8 @@ class PremiumAIPopup extends StatelessWidget {
                         decoration: BoxDecoration(
                           gradient: RadialGradient(
                             colors: [
-                              const Color(0xFFFFD700).withOpacity(0.1),
+                              const Color(0xFFFFD700).withValues(alpha: 0.1),
+
                               Colors.black,
                             ],
                             center: Alignment.center,
@@ -175,7 +177,8 @@ class PremiumAIPopup extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.6),
+                  color: Colors.black.withValues(alpha: 0.6),
+
                   shape: BoxShape.circle,
                   border: Border.all(color: Colors.white24),
                 ),

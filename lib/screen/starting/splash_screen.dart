@@ -1,8 +1,6 @@
 import 'package:astrogram/screen/starting/start_screen.dart';
 import 'package:flutter/material.dart';
 
-import '../../helper/custom_text.style.dart';
-
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -14,7 +12,7 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    Future.delayed(const Duration(seconds: 3), () {
+    Future.delayed(const Duration(seconds: 5), () {
       if (mounted) {
         Navigator.pushReplacement(
           context,
@@ -29,34 +27,44 @@ class _SplashScreenState extends State<SplashScreen> {
     // medial query
     final mqData = MediaQuery.of(context).size;
     return Scaffold(
-      backgroundColor: Colors.black,
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(1000),
+      body: Stack(
+        fit: StackFit.expand,
 
-              child: Image.asset(
-                "lib/assets/icons/app_logo.png",
-                height: mqData.height * 0.2,
-                width: mqData.height * 0.2,
-                fit: BoxFit.cover,
-              ),
-            ),
-            SizedBox(height: 12),
+        children: [
+          Image.asset("lib/assets/images/splash.png", fit: BoxFit.cover),
+          Container(color: Colors.black.withOpacity(0.4)),
 
-            Text(
-              "Devine",
-              style: myTextStyle36(
-                fontweight: FontWeight.bold,
-                textColor: Colors.white,
-                //fontFamily: "secondary",
-              ),
+          // logo + app name
+          Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Logo
+                // Image.asset(
+                //   "lib/assets/icons/app_logo.png",
+                //   height: mqData.height * 0.18,
+                // ),
+                const SizedBox(height: 16),
+
+                // App Name
+                // Text(
+                //   "Devine",
+                //   style: myTextStyle36(
+                //     fontweight: FontWeight.bold,
+                //     textColor: Colors.white,
+                //     //fontFamily: "secondary",
+                //   ),
+                ///),
+                const SizedBox(height: 6),
+                // Tagline (optional but recommended)
+                // Text(
+                //   "Astrology • Matrimony • Guidance",
+                //   style: myTextStyle18(textColor: Colors.white70),
+                // ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

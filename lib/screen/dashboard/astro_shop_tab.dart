@@ -1,97 +1,130 @@
 import 'package:flutter/material.dart';
+import '../../helper/color.dart';
+import '../../models/product_model.dart';
+import '../../services/dummy_product_service.dart';
+import '../shop/product_detail_screen.dart';
 
-class AstroShopTab extends StatelessWidget {
+class AstroShopTab extends StatefulWidget {
   const AstroShopTab({super.key});
 
-  final List<Map<String, dynamic>> shopItems = const [
-    {
-      'name': 'Brihat Kundli',
-      'image': 'lib/assets/images/kundli.png',
-      'icon': Icons.book,
-    },
-    {
-      'name': 'Rudraksha',
-      'image': 'lib/assets/images/rudraksha.png',
-      'icon': Icons.circle,
-    },
-    {
-      'name': 'Yantra',
-      'image': 'lib/assets/images/yantra.jpg',
-      'icon': Icons.filter_center_focus,
-    },
-    {
-      'name': 'Gemstone',
-      'image': 'lib/assets/images/Gemstone.png',
-      'icon': Icons.diamond,
-    },
-    {
-      'name': 'Mala',
-      'image': 'lib/assets/images/mala.png',
-      'icon': Icons.scatter_plot,
-    },
-    {
-      'name': 'Jadi',
-      'image': 'lib/assets/images/jadi.jpg',
-      'icon': Icons.grass,
-    },
-    {
-      'name': 'Services',
-      'image': 'assets/shop/services.png',
-      'icon': Icons.miscellaneous_services,
-    },
-    {
-      'name': 'Kundli AI+',
-      'image': 'lib/assets/images/kundli.png',
-      'icon': Icons.psychology,
-    },
-    {
-      'name': 'CogniAstro',
-      'image': 'assets/shop/cogniastro.png',
-      'icon': Icons.school,
-    },
-    {
-      'name': 'Miscellaneous',
-      'image': 'assets/shop/misc.png',
-      'icon': Icons.folder,
-    },
-    {'name': 'Aroma', 'image': 'assets/shop/aroma.png', 'icon': Icons.air},
-    {
-      'name': 'Bracelet',
-      'image': 'lib/assets/images/bracelets.jpeg',
-      'icon': Icons.watch,
-    },
-    {
-      'name': 'Premium',
-      'image': 'lib/assets/images/b1.png',
-      'icon': Icons.workspace_premium,
-    },
-    {
-      'name': 'Pendant',
-      'image': 'lib/assets/images/pendant.png',
-      'icon': Icons.vertical_align_bottom,
-    },
-    {
-      'name': 'Tumble',
-      'image': 'lib/assets/images/tumble.png',
-      'icon': Icons.terrain,
-    },
-  ];
+  @override
+  State<AstroShopTab> createState() => _AstroShopTabState();
+}
+
+class _AstroShopTabState extends State<AstroShopTab> {
+  final DummyProductService _productService = DummyProductService();
+  List<Product> _products = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchProducts();
+  }
+
+  Future<void> _fetchProducts() async {
+    final products = await _productService.getAllProducts();
+    if (mounted) {
+      setState(() {
+        _products = products;
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return SingleChildScrollView(
       padding: const EdgeInsets.only(bottom: 20),
       child: Column(
         children: [
-          _buildPromoBanner(),
+          _buildPromoBanner(theme, isDark),
           const SizedBox(height: 16),
-          _buildShopGrid(),
+          _buildCategoryFilters(isDark),
+          const SizedBox(height: 16),
+          _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : _buildShopGrid(theme, isDark),
         ],
       ),
     );
   }
 
-  Widget _buildPromoBanner() {
+  String _selectedCategory = 'All';
+  final List<String> _categories = [
+    'All',
+    'Rudraksha',
+    'Gemstone',
+    'Yantra',
+    'Mala',
+    'Pendant',
+  ];
+
+  Widget _buildCategoryFilters(bool isDark) {
+    return SizedBox(
+      height: 40,
+      child: ListView.separated(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        scrollDirection: Axis.horizontal,
+        itemCount: _categories.length,
+        separatorBuilder: (context, index) => const SizedBox(width: 8),
+        itemBuilder: (context, index) {
+          final category = _categories[index];
+          final isSelected = _selectedCategory == category;
+          return GestureDetector(
+            onTap: () {
+              setState(() {
+                _selectedCategory = category;
+                _isLoading = true;
+              });
+              _filterProducts(category);
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? AppColors.goldAccent
+                    : (isDark ? AppColors.darkCard : Colors.grey.shade200),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: isSelected
+                      ? AppColors.goldAccent
+                      : (isDark ? AppColors.darkBorder : Colors.grey.shade300),
+                ),
+              ),
+              child: Center(
+                child: Text(
+                  category,
+                  style: TextStyle(
+                    color: isSelected
+                        ? Colors.black
+                        : (isDark ? Colors.white : Colors.black),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Future<void> _filterProducts(String category) async {
+    final products = await _productService.getProductsByCategory(category);
+    if (mounted) {
+      setState(() {
+        _products = products;
+        _isLoading = false;
+      });
+    }
+  }
+
+  Widget _buildPromoBanner(ThemeData theme, bool isDark) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       width: double.infinity,
@@ -99,7 +132,12 @@ class AstroShopTab extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
         gradient: LinearGradient(
-          colors: [Color(0xFF800000), Color(0xFF400000)], // Dark Red gradient
+          colors: isDark
+              ? [AppColors.onboardingPurple, AppColors.onboardingBlack]
+              : [
+                  const Color(0xFF800000),
+                  const Color(0xFF400000),
+                ], // Dark Red gradient
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
         ),
@@ -142,7 +180,7 @@ class AstroShopTab extends StatelessWidget {
                             TextSpan(
                               text: '75%',
                               style: TextStyle(
-                                color: Color(0xFFFFD700),
+                                color: AppColors.goldAccent,
                                 fontSize: 28,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -201,7 +239,7 @@ class AstroShopTab extends StatelessWidget {
                         '20\n26',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          color: Color(0xFFFFD700),
+                          color: AppColors.goldAccent,
                           fontSize: 32,
                           height: 0.9,
                           fontWeight: FontWeight.bold,
@@ -223,7 +261,7 @@ class AstroShopTab extends StatelessWidget {
                           horizontal: 4,
                           vertical: 2,
                         ),
-                        color: Colors.red,
+                        decoration: BoxDecoration(color: Colors.red),
                         child: Text(
                           'SALE',
                           style: TextStyle(
@@ -240,23 +278,23 @@ class AstroShopTab extends StatelessWidget {
             ),
           ),
 
-          // Product Image Placeholder (Top center-ish)
+          // Sparkle decorations
           Positioned(
-            top: 5,
-            right: 100,
-            child: Container(
-              width: 50,
-              height: 50,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: Color(0xFFFFD700), width: 1),
-                image: DecorationImage(
-                  image: NetworkImage(
-                    'https://via.placeholder.com/50',
-                  ), // Replace with local asset later
-                  fit: BoxFit.cover,
-                ),
-              ),
+            top: 15,
+            right: 120,
+            child: Icon(
+              Icons.auto_awesome,
+              color: AppColors.goldAccent.withValues(alpha: 0.3),
+              size: 24,
+            ),
+          ),
+          Positioned(
+            top: 40,
+            right: 80,
+            child: Icon(
+              Icons.auto_awesome,
+              color: AppColors.goldAccent.withValues(alpha: 0.2),
+              size: 16,
             ),
           ),
         ],
@@ -264,59 +302,125 @@ class AstroShopTab extends StatelessWidget {
     );
   }
 
-  Widget _buildShopGrid() {
+  Widget _buildShopGrid(ThemeData theme, bool isDark) {
     return GridView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 3,
-        childAspectRatio: 0.75, // Adjust height
+        childAspectRatio: 0.75, // Adjusted for better height
         crossAxisSpacing: 16,
-        mainAxisSpacing: 20,
+        mainAxisSpacing: 12,
       ),
-      itemCount: shopItems.length,
+      itemCount: _products.length,
       itemBuilder: (context, index) {
-        final item = shopItems[index]; // Use final for safety
-        return Column(
-          children: [
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.grey.shade300, width: 1),
+        final item = _products[index];
+        return InkWell(
+          onTap: () {
+            print("Tapped on product: ${item.name}");
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ProductDetailScreen(product: item),
               ),
-              child: ClipOval(
-                child: Image.asset(
-                  item['image'],
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Center(
-                      child: Icon(
-                        item['icon'] as IconData,
-                        size: 30,
-                        color: Colors.brown,
+            );
+          },
+          child: Container(
+            color: Colors.transparent, // Ensure hit test works on full area
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 70,
+                  height: 70,
+                  decoration: BoxDecoration(
+                    color: isDark ? AppColors.darkCard : Colors.white,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: isDark
+                          ? AppColors.darkBorder
+                          : Colors.grey.shade300,
+                      width: 1,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
                       ),
-                    );
-                  },
+                    ],
+                  ),
+                  child: ClipOval(
+                    child: item.primaryImage.isEmpty
+                        ? Center(
+                            child: Icon(
+                              Icons.diamond,
+                              size: 28,
+                              color: isDark
+                                  ? AppColors.goldAccent
+                                  : Colors.brown,
+                            ),
+                          )
+                        : (item.primaryImage.startsWith('http')
+                              ? Image.network(
+                                  item.primaryImage,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Center(
+                                      child: Icon(
+                                        Icons.image_not_supported,
+                                        size: 28,
+                                        color: isDark
+                                            ? AppColors.goldAccent
+                                            : Colors.brown,
+                                      ),
+                                    );
+                                  },
+                                )
+                              : Image.asset(
+                                  item.primaryImage,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Center(
+                                      child: Icon(
+                                        Icons.local_mall,
+                                        size: 28,
+                                        color: isDark
+                                            ? AppColors.goldAccent
+                                            : Colors.brown,
+                                      ),
+                                    );
+                                  },
+                                )),
+                  ),
                 ),
-              ),
+                const SizedBox(height: 6),
+                Flexible(
+                  child: Text(
+                    item.name,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: theme.colorScheme.onSurface,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '₹${item.finalPrice.toStringAsFixed(0)}',
+                  style: TextStyle(
+                    color: AppColors.goldAccent, // Or a price color
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 8),
-            Text(
-              item['name'] as String,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
+          ),
         );
       },
     );

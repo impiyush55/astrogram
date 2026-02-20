@@ -1,0 +1,27 @@
+Analyzing astrogram...                                          
+
+   info - Unnecessary use of multiple underscores - lib\screen\dashboard\ask_screen.dart:105:37 - unnecessary_underscores
+   info - Unnecessary use of multiple underscores - lib\screen\dashboard\ask_screen.dart:158:43 - unnecessary_underscores
+   info - Unnecessary use of multiple underscores - lib\screen\dashboard\ask_screen.dart:217:49 - unnecessary_underscores
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screen\dashboard\home_screen.dart:32:36 - deprecated_member_use
+   info - Unnecessary use of multiple underscores - lib\screen\dashboard\home_screen.dart:184:33 - unnecessary_underscores
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screen\dashboard\home_screen.dart:200:49 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screen\dashboard\home_screen.dart:259:50 - deprecated_member_use
+   info - Unnecessary use of multiple underscores - lib\screen\dashboard\home_screen.dart:340:31 - unnecessary_underscores
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screen\dashboard\home_screen.dart:352:43 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screen\dashboard\home_screen.dart:387:59 - deprecated_member_use
+   info - Unnecessary use of multiple underscores - lib\screen\dashboard\home_screen.dart:447:31 - unnecessary_underscores
+   info - Unnecessary use of multiple underscores - lib\screen\dashboard\home_screen.dart:464:47 - unnecessary_underscores
+   info - Unnecessary use of multiple underscores - lib\screen\dashboard\home_screen.dart:523:31 - unnecessary_underscores
+   info - Unnecessary use of multiple underscores - lib\screen\dashboard\home_screen.dart:541:51 - unnecessary_underscores
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screen\dashboard\home_screen.dart:641:59 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screen\dashboard\home_screen.dart:644:44 - deprecated_member_use
+   info - Unnecessary use of multiple underscores - lib\screen\dashboard\horoscope_screen.dart:136:37 - unnecessary_underscores
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screen\dashboard\horoscope_screen.dart:488:22 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screen\dashboard\horoscope_screen.dart:539:32 - deprecated_member_use
+   info - Don't invoke 'print' in production code - lib\services\auth_service.dart:10:5 - avoid_print
+   info - Don't invoke 'print' in production code - lib\services\popup_service.dart:26:7 - avoid_print
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widgets\premium_ai_popup.dart:26:48 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widgets\premium_ai_popup.dart:49:55 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widgets\premium_ai_popup.dart:178:39 - deprecated_member_use
+
